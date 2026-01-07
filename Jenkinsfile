@@ -1,27 +1,24 @@
-pipeline {
-    agent {
-        docker {
-            image 'node:latest'
-            args '-p 3000:3000'
-        }
+node {
+    stage('Checkout') {
+        // Mengambil kode dari repositori
+        checkout scm
     }
-    stages {
-        stage('Build') {
-            steps {
-                sh 'npm install'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh './jenkins/scripts/test.sh'
-            }
-        }
-        stage('Deploy') { 
-            steps {
-                sh './jenkins/scripts/deliver.sh' 
-                input message: 'Sudah selesai menggunakan React App? (Klik "Proceed" untuk mengakhiri)' 
-                sh './jenkins/scripts/kill.sh' 
-            }
-        }
+
+    stage('Build') {
+        echo 'Melakukan Instalasi Dependensi...'
+        // Perintah asli membangun aplikasi
+        sh 'npm install'
+    }
+
+    stage('Test') {
+        echo 'Menjalankan Unit Testing...'
+        // CI=true agar test tidak hang/berhenti menunggu input
+        sh 'CI=true npm test'
+    }
+
+    stage('Archive') {
+        echo 'Mengarsipkan Log...'
+        // Perintah untuk menyimpan log ke tab artifacts
+        archiveArtifacts artifacts: 'log.txt', followSymlinks: false
     }
 }
