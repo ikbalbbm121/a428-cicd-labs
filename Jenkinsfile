@@ -1,24 +1,17 @@
 node {
     stage('Checkout') {
-        // Mengambil kode dari GitHub
-        checkout scm
+        git branch: 'react-app', url: 'https://github.com/ikbalbbm121/a428-cicd-labs.git'
     }
-
     stage('Build') {
-        echo 'Menjalankan Tahap Build...'
-        // Simulasi build, atau jika ada npm: sh 'npm install'
-        sh 'echo "Proses Build Selesai"'
+        // Ubah build.log menjadi log.txt
+        sh 'echo "Menjalankan Build..." > log.txt'
     }
-
     stage('Test') {
-        echo 'Menjalankan Tahap Test...'
-        // Simulasi test
-        sh 'echo "Semua Test Pass"'
+        // Tambahkan isi ke log.txt
+        sh 'echo "Menjalankan Test..." >> log.txt'
     }
-
     stage('Archive') {
-        // Membuat file log sederhana agar muncul di tab Artifacts Blue Ocean
-        sh 'echo "Build Log untuk Submission" > build.log'
-        archiveArtifacts artifacts: 'build.log', followSymlinks: false
+        // Simpan sebagai log.txt agar muncul di tab Artifacts dengan nama yang benar
+        archiveArtifacts artifacts: 'log.txt', followSymlinks: false
     }
 }
