@@ -1,19 +1,24 @@
 pipeline {
     agent {
         docker {
-            image 'node:18-alpine' // Disarankan menggunakan versi spesifik & ringan (alpine)
+            image 'node:18-alpine' 
             args '-p 3000:3000' 
         }
     }
     stages {
         stage('Install & Build') { 
             steps {
-                // Gunakan --no-audit agar tidak berhenti karena peringatan keamanan
-                // Gunakan --quiet agar log tidak terlalu kotor
+                // Tahap instalasi
                 sh 'npm install --no-audit --quiet'
                 
-                // Biasanya setelah install, perlu menjalankan build
+                // Tambahkan perintah build agar ada proses selanjutnya
                 // sh 'npm run build' 
+            }
+        }
+        stage('Test') {
+            steps {
+                // Contoh jika ingin menjalankan test (pastikan ada script test di package.json)
+                sh 'echo "Running tests..." '
             }
         }
     }
