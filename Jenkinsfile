@@ -1,21 +1,20 @@
 pipeline {
     agent {
         docker {
-            image 'node:latest' 
+            image 'node:18-alpine' // Disarankan menggunakan versi spesifik & ringan (alpine)
             args '-p 3000:3000' 
         }
     }
     stages {
-        stage('Build') { 
+        stage('Install & Build') { 
             steps {
-                sh 'npm install'
+                // Gunakan --no-audit agar tidak berhenti karena peringatan keamanan
+                // Gunakan --quiet agar log tidak terlalu kotor
+                sh 'npm install --no-audit --quiet'
+                
+                // Biasanya setelah install, perlu menjalankan build
+                // sh 'npm run build' 
             }
         }
-    }
-}
-stage('Install Dependencies') {
-    steps {
-        // Tambahkan flag --no-audit agar Jenkins tidak berhenti karena masalah keamanan paket
-        sh 'npm install --no-audit --quiet'
     }
 }
