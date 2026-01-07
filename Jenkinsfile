@@ -1,24 +1,27 @@
-node {
-    stage('Checkout') {
-        git branch: 'react-app', url: 'https://github.com/ikbalbbm121/a428-cicd-labs.git'
+pipeline {
+    agent {
+        docker {
+            image 'node:16-buster-slim'
+            args '-p 3000:3000'
+        }
     }
-    stage('Build') {
-        // Ubah build.log menjadi log.txt
-        sh 'echo "Menjalankan Build..." > log.txt'
-    }
-    stage('Test') {
-        // Tambahkan isi ke log.txt
-        sh 'echo "Menjalankan Test..." >> log.txt'
-    }
-    stage('Archive') {
-        // Simpan sebagai log.txt agar muncul di tab Artifacts dengan nama yang benar
-        archiveArtifacts artifacts: 'log.txt', followSymlinks: false
-    }
-}
-stage('Deploy') {
+    stages {
+        stage('Build') {
             steps {
-                sh './jenkins/scripts/deliver.sh'
-                input message: 'Sudah selesai menggunakan React App? (Klik "Proceed" untuk mengakhiri)'
-                sh './jenkins/scripts/kill.sh'
+                sh 'npm install'
             }
         }
+        stage('Test') {
+            steps {
+                sh './jenkins/scripts/test.sh'
+            }
+        }
+        stage('Deploy') { 
+            steps {
+                sh './jenkins/scripts/deliver.sh' 
+                input message: 'Sudah selesai menggunakan React App? (Klik "Proceed" untuk mengakhiri)' 
+                sh './jenkins/scripts/kill.sh' 
+            }
+        }
+    }
+}
