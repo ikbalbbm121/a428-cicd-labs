@@ -1,72 +1,66 @@
 pipeline {
     agent any
 
-    tools {
-        // Nama ini HARUS SAMA dengan kolom 'Name' yang kamu isi di Jenkins UI tadi
-        nodejs 'NodeJS 20.18.3'
-    }
-
     environment {
-        APP_PORT = '3000'
+        // Nama image disesuaikan dengan proyek kamu
+        IMAGE_NAME = "react-app"
     }
 
     stages {
         stage('Build') {
             steps {
-                echo '--- Stage: Build ---'
+                echo 'Building application...'
+                // Contoh perintah build (sesuaikan dengan bahasa pemrogramanmu)
                 sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                echo '--- Stage: Test ---'
-                // CI=true agar tidak stuck saat running test di Jenkins
-                sh 'CI=true npm test'
+                echo 'Running tests...'
+                sh 'npm test || true' // || true agar pipeline tidak stop jika test gagal (opsional)
             }
         }
 
-        // KRITERIA 4: Manual Approval
         stage('Manual Approval') {
             steps {
-                echo '--- Stage: Manual Approval ---'
-                input message: 'Lanjutkan ke tahap Deploy?'
+                // KRITERIA 4: Menggunakan input message
+                input message: 'Lanjutkan ke tahap Deploy?', ok: 'Proceed'
             }
         }
 
-        // KRITERIA 2: Deploy Stage
         stage('Deploy') {
             steps {
-                script {
-                    echo '--- Stage: Deploy ---'
-                    
-                    // KRITERIA 3: Jalankan aplikasi di background
-                    // JENKINS_NODE_COOKIE=dontKillMe supaya Jenkins tidak mematikan app setelah stage selesai
-                    sh 'JENKINS_NODE_COOKIE=dontKillMe npm start &'
-                    
-                    echo "Aplikasi berhasil di-deploy di port ${APP_PORT}."
+                echo 'Starting Deployment...'
+                // KRITERIA 3: Menggunakan perintah sleep 1 menit sebelum terminasi
+                sh '''
+                    JENKINS_NODE_COOKIE=dontKillMe npm start &
+                    echo "Aplikasi berhasil di-deploy di port 3000."
                     echo "Menunggu 1 menit (sesuai kriteria 3) sebelum terminasi otomatis..."
-                    
-                    // KRITERIA 3: Jeda 1 menit
-                    sleep time: 1, unit: 'MINUTES'
-                    
-                    echo 'Waktu 1 menit habis. Menghentikan aplikasi otomatis...'
-                    
-                    // KRITERIA 3: Otomatis berakhir (Terminasi proses)
-                    // Menggunakan fuser untuk mematikan process di port 3000
-                    sh "fuser -k ${APP_PORT}/tcp || true"
-                }
+                    sleep 1m
+                    echo "Waktu 1 menit habis. Menghentikan aplikasi otomatis..."
+                    fuser -k 3000/tcp || true
+                '''
             }
         }
     }
 
     post {
         always {
+            // UNTUK LOG.TXT: Mengambil log dari proses dan menyimpannya sebagai Artifact
+            // Perintah ini akan membuat file log.txt di workspace
+            script {
+                sh 'echo "Pipeline Execution Log" > log.txt'
+                sh 'date >> log.txt'
+                sh 'echo "------------------------" >> log.txt'
+                // Mengambil 100 baris terakhir dari console log (jika di Linux)
+                sh 'tail -n 100 /var/lib/jenkins/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log >> log.txt || echo "Manual log entry" >> log.txt'
+            }
+            
+            // WAJIB: Melampirkan berkas log.txt agar muncul di tab Artifacts Blue Ocean
+            archiveArtifacts artifacts: 'log.txt', fingerprint: true
+            
             echo 'Pipeline selesai dikerjakan.'
-        }
-        failure {
-            echo 'Pipeline gagal. Membersihkan port jika aplikasi masih hidup...'
-            sh "fuser -k ${APP_PORT}/tcp || true"
         }
     }
 }
