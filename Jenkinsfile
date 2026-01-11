@@ -2,59 +2,58 @@ pipeline {
     agent any
 
     tools {
-        // Pastikan nama 'node20' sesuai dengan yang kamu buat di Global Tool Configuration
-        nodejs 'node20'
+        // PASTIKAN nama ini SAMA dengan yang ada di Manage Jenkins > Tools
+        nodejs 'node20' 
     }
 
     environment {
-        // Mendefinisikan port agar mudah diatur dan dimatikan nanti
+        // Mendefinisikan port aplikasi agar mudah dimatikan nanti
         APP_PORT = '3000'
     }
 
     stages {
         stage('Build') {
             steps {
-                echo '--- Tahap Build Dimulai ---'
+                echo '--- Stage: Build ---'
                 sh 'npm install'
-                // sh 'npm run build' // Aktifkan jika aplikasi butuh build production
             }
         }
 
         stage('Test') {
             steps {
-                echo '--- Tahap Testing Dimulai ---'
-                // CI=true memastikan test tidak berjalan selamanya (non-interactive)
+                echo '--- Stage: Test ---'
+                // CI=true agar test berhenti otomatis setelah selesai (tidak nunggu input)
                 sh 'CI=true npm test'
             }
         }
 
-        // Kriteria 4: Manual Approval
+        // KRITERIA 4: Manual Approval
         stage('Manual Approval') {
             steps {
-                echo '--- Menunggu Persetujuan Manual ---'
+                echo '--- Stage: Manual Approval ---'
                 input message: 'Lanjutkan ke tahap Deploy?'
             }
         }
 
-        // Kriteria 2 & 3: Deploy Stage & Jeda Otomatis
+        // KRITERIA 2: Deploy Stage
         stage('Deploy') {
             steps {
                 script {
-                    echo '--- Tahap Deploy Dimulai ---'
+                    echo '--- Stage: Deploy ---'
                     
-                    // Menjalankan aplikasi di background
-                    // Penggunaan 'BUILD_ID=dontKillMe' agar Jenkins tidak mematikan process setelah stage selesai
-                    sh 'BUILD_ID=dontKillMe npm start &'
+                    // KRITERIA 3: Menjalankan aplikasi & Jeda 1 menit
+                    // JENKINS_NODE_COOKIE memastikan Jenkins tidak membunuh proses background terlalu cepat
+                    sh "JENKINS_NODE_COOKIE=dontKillMe npm start &"
                     
-                    echo "Aplikasi berjalan di port ${APP_PORT}. Menunggu 1 menit..."
+                    echo "Aplikasi berjalan di port ${APP_PORT}. Menunggu 1 menit sebelum otomatis berakhir..."
                     
-                    // Kriteria 3: Jeda 1 menit (60 detik)
+                    // Tunggu 1 menit
                     sleep time: 1, unit: 'MINUTES'
                     
-                    echo 'Waktu 1 menit berselang. Menghentikan aplikasi otomatis...'
+                    echo 'Waktu habis! Menghentikan aplikasi...'
                     
-                    // Mematikan aplikasi berdasarkan port
-                    // 'fuser -k' akan mencari process di port tersebut dan mematikannya
+                    // KRITERIA 3: Otomatis berakhir menggunakan fuser
+                    // || true digunakan agar pipeline tetap sukses meskipun proses sudah berhenti duluan
                     sh "fuser -k ${APP_PORT}/tcp || true"
                 }
             }
@@ -63,14 +62,10 @@ pipeline {
 
     post {
         always {
-            echo '--- Pipeline Selesai ---'
-        }
-        success {
-            echo 'Pipeline berhasil dijalankan sepenuhnya!'
+            echo 'Pipeline selesai dikerjakan.'
         }
         failure {
-            echo 'Pipeline gagal. Silakan cek log di atas.'
-            // Opsional: Memastikan port bersih jika terjadi error di tengah jalan
+            echo 'Ada masalah pada pipeline. Membersihkan port...'
             sh "fuser -k ${APP_PORT}/tcp || true"
         }
     }
