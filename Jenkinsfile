@@ -1,24 +1,49 @@
-stage('Manual Approval') {
-    steps {
-        input message: 'Lanjutkan ke tahap Deploy?'
-    }
-}
+pipeline {
+    agent any
 
-stage('Deploy') {
-    steps {
-        script {
-            // Jalankan aplikasi di background
-            // Jika React:
-            sh 'npm start &' 
-            
-            echo "Aplikasi berjalan... Menunggu 1 menit sebelum terminasi otomatis."
-            
-            // Kriteria 3: Jeda 1 menit
-            sh 'sleep 60'
-            
-            // Kriteria 3: Otomatis berakhir (Kill process agar pipeline selesai)
-            // Mencari PID yang berjalan di port (misal 3000) dan mematikannya
-            sh 'fuser -k 3000/tcp || true' 
+    stages {
+        // Stage 1 & 2: Sesuai proyek pertama kamu (contoh: React)
+        stage('Build') {
+            steps {
+                echo 'Building application...'
+                sh 'npm install'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                sh 'npm test -- --watchAll=false'
+            }
+        }
+
+        // Kriteria 4: Manual Approval
+        stage('Manual Approval') {
+            steps {
+                input message: 'Lanjutkan ke tahap Deploy?'
+            }
+        }
+
+        // Kriteria 2 & 3: Deploy Stage & Auto-Termination
+        stage('Deploy') {
+            steps {
+                script {
+                    echo 'Deploying application...'
+                    // Menjalankan aplikasi di background (port 3000 untuk React)
+                    sh 'npm start &'
+                    
+                    echo 'Aplikasi berhasil di-deploy. Menunggu 1 menit...'
+                    
+                    // Jeda selama 60 detik (1 menit)
+                    sh 'sleep 60'
+                    
+                    echo 'Waktu habis. Menghentikan aplikasi otomatis...'
+                    
+                    // Mematikan process yang berjalan di port 3000
+                    // Gunakan || true agar pipeline tidak fail jika process sudah mati
+                    sh 'fuser -k 3000/tcp || true'
+                }
+            }
         }
     }
 }
