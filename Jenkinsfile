@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         // Nama ini HARUS SAMA dengan kolom 'Name' yang kamu isi di Jenkins UI tadi
-        nodejs 'node-terbaru'
+        nodejs 'NodeJS 20.18.3'
     }
 
     environment {
