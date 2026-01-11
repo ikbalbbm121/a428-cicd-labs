@@ -1,24 +1,24 @@
-node {
-    stage('Checkout') {
-        // Mengambil kode dari repositori
-        checkout scm
+stage('Manual Approval') {
+    steps {
+        input message: 'Lanjutkan ke tahap Deploy?'
     }
+}
 
-    stage('Build') {
-        echo 'Melakukan Instalasi Dependensi...'
-        // Perintah asli membangun aplikasi
-        sh 'npm install'
-    }
-
-    stage('Test') {
-        echo 'Menjalankan Unit Testing...'
-        // CI=true agar test tidak hang/berhenti menunggu input
-        sh 'CI=true npm test'
-    }
-
-    stage('Archive') {
-        echo 'Mengarsipkan Log...'
-        // Perintah untuk menyimpan log ke tab artifacts
-        archiveArtifacts artifacts: 'log.txt', followSymlinks: false
+stage('Deploy') {
+    steps {
+        script {
+            // Jalankan aplikasi di background
+            // Jika React:
+            sh 'npm start &' 
+            
+            echo "Aplikasi berjalan... Menunggu 1 menit sebelum terminasi otomatis."
+            
+            // Kriteria 3: Jeda 1 menit
+            sh 'sleep 60'
+            
+            // Kriteria 3: Otomatis berakhir (Kill process agar pipeline selesai)
+            // Mencari PID yang berjalan di port (misal 3000) dan mematikannya
+            sh 'fuser -k 3000/tcp || true' 
+        }
     }
 }
